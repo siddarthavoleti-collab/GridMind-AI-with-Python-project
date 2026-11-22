@@ -13,7 +13,7 @@ parents['S1'] = ['G1']; parents['S3'] = ['G2']; parents['S2'] = ['S1']   # S2 fe
 
 # Scenarios: hidden ground truth (a fault in T makes T and its loads ABNORMAL)
 scenarios = {'Scenario 1': ['T1'], 'Scenario 2': ['T2'],
-             'Scenario 3': ['T3'], 'Scenario 4': ['T4']}
+             'Scenario 3': ['T3']}
 
 def make_observations(faults):
     obs = {n: 'NORMAL' for n in network}
@@ -38,7 +38,7 @@ def ac3_diagnose(obs):
             for p in parents[n]:
                 add(n, p, {(a, b) for a in (0, 1) for b in (0, 1) if a or b})
 
-    explored = pruned = 0
+    explored = 0
     q = deque(constraints)
     while q:
         X, Y = q.popleft()
@@ -46,10 +46,10 @@ def ac3_diagnose(obs):
         removed = False
         for x in set(domains[X]):
             if not any((x, y) in constraints[(X, Y)] for y in domains[Y]):
-                domains[X].discard(x); pruned += 1; removed = True
+                domains[X].discard(x); removed = True
         if removed:
             if not domains[X]:
-                return None, explored, pruned
+                return None, explored
             q.extend((Z, X) for (Z, W) in constraints if W == X and Z != Y)
 
     def consistent(a):
@@ -67,7 +67,7 @@ def ac3_diagnose(obs):
 
     assign = {n: min(d) for n, d in domains.items() if len(d) == 1}
     sol = backtrack(assign, [n for n, d in domains.items() if len(d) > 1])
-    return sorted(n for n, v in sol.items() if v), explored, pruned
+    return sorted(n for n, v in sol.items() if v), explored
 
 def inspect_order(obs):
     """Inspect transformers in order; stop at the first FAULT. The last one is inferred."""
@@ -88,12 +88,11 @@ for name, faults in scenarios.items():
     for t, o in order:
         print(f"Inspect {t} : {'FAULT' if o == 'ABNORMAL' else 'NORMAL'}")
     print(f"Inspection Order: {[t for t, _ in order]}")
-    detected, explored, pruned = ac3_diagnose(obs)
+    detected, explored = ac3_diagnose(obs)
     ms = (time.perf_counter() - t0) * 1000
 
     identified = next((s for s, f in scenarios.items() if f == detected), 'Unknown')
     print(f"Identified Scenario: {identified}")
     print(f"Detected Faults: {detected}")
     print(f"Nodes Explored: {explored}")
-    print(f"Branches Pruned: {pruned}")
     print(f"Execution Time: {round(ms, 4)} ms\n")
