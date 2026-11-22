@@ -1,4 +1,6 @@
-
+#CS25B2029
+#K.VAISHNAV
+#ALPHA-BETA 
 import time
 
 # 1. GRIDMIND NETWORK
